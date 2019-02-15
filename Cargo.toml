@@ -4,9 +4,12 @@ version = "0.1.0"
 authors = ["chris ricketts <chris.ricketts@steribar.com>"]
 edition = "2018"
 
+[dependencies]
+lazy_static = "1.2.0"
+
 [build-dependencies]
 bindgen = "0.47"
-lazy_static = "1.2.0"
+quote = "0.6"
 syn = { version = "0.15", features = ["full", "extra-traits"] }
-codegen = "0.1.0"
 regex = "1"
+proc-macro2 = "0.4"
