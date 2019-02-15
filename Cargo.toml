@@ -1,0 +1,12 @@
+[package]
+name = "kbrd-layouts-rs"
+version = "0.1.0"
+authors = ["chris ricketts <chris.ricketts@steribar.com>"]
+edition = "2018"
+
+[build-dependencies]
+bindgen = "0.47"
+lazy_static = "1.2.0"
+syn = { version = "0.15", features = ["full", "extra-traits"] }
+codegen = "0.1.0"
+regex = "1"
