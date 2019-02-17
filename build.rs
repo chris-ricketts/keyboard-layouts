@@ -13,7 +13,7 @@ const ASCII_CODE_START: u8 = 0x20;
 const ASCII_CODE_END: u8 = 0x7F;
 const UNICODE_ENTER: u8 = 10;
 const UNICODE_TAB: u8 = 11;
-const N_ASCII_CHARS_SUPPORTED: usize = (ASCII_CODE_END - ASCII_CODE_START) as usize; 
+const N_ASCII_CHARS_SUPPORTED: usize = (ASCII_CODE_END - ASCII_CODE_START) as usize;
 
 struct GlobalKeys {
     pub enter: u16,
@@ -23,7 +23,12 @@ struct GlobalKeys {
     pub right_ctrl_modifier: u16,
 }
 
-struct Layout
+struct LayoutMasks {
+    pub shift_mask: u16,
+    pub alt_mask: u16,
+    pub ctrl_mask: u16,
+    pub keycode_mask: u16,
+}
 
 fn main() {
     let GlobalKeys {
@@ -34,7 +39,11 @@ fn main() {
         right_ctrl_modifier,
     } = get_global_keys();
 
-    let layout_defs = find_layout_definitions();
+    let layouts = find_layout_definitions().iter().map(|def| {
+        let layout = generate_layout(def);
+        let masks = extract_layout_masks(&layout);
+        let keycodes = extract_ascii_keycodes(&layout);
+
 
     let layout_display_names: Vec<String> = layout_defs
         .iter()
@@ -59,48 +68,94 @@ fn main() {
         })
         .collect();
 
-    let full_output = quote! {
-        use std::collections::HashMap;
-        use lazy_static::lazy_static;
+    //let full_output = quote! {
+    //    use std::collections::HashMap;
+    //    use lazy_static::lazy_static;
 
-        const SHIFT_MODIFIER: u16 = #shift_modifier;
-        const RIGHT_ALT_MODIFIER: u16 = #right_alt_modifier;
-        const RIGHT_CTRL_MODIFIER: u16 = #right_ctrl_modifier;
+    //    const SHIFT_MODIFIER: u16 = #shift_modifier;
+    //    const RIGHT_ALT_MODIFIER: u16 = #right_alt_modifier;
+    //    const RIGHT_CTRL_MODIFIER: u16 = #right_ctrl_modifier;
 
-        lazy_static! {
-            #(static ref #layout_idents: Vec<u16> = #layout_vecs;)*
-            static ref LAYOUT_MAP: HashMap<&'static str, (&'static str, &'static [u16])> = {
-                let mut m = HashMap::new();
-                #(m.insert(#layout_defs, (#layout_display_names, #layout_idents_clone.as_slice()));)*
-                m
-            };
-        }
+    //    lazy_static! {
+    //        #(static ref #layout_idents: Vec<u16> = #layout_vecs;)*
+    //        static ref LAYOUT_MAP: HashMap<&'static str, (&'static str, &'static [u16])> = {
+    //            let mut m = HashMap::new();
+    //            #(m.insert(#layout_defs, (#layout_display_names, #layout_idents_clone.as_slice()));)*
+    //            m
+    //        };
+    //    }
 
-        fn determine_modifier(keycode: u16) -> u8 {
-            let mut modifier = 0u8;
-            if keycode & SHIFT
+    //    fn determine_modifier(keycode: u16) -> u8 {
+    //        let mut modifier = 0u8;
+    //        if keycode & SHIFT
 
-        pub fn available_layouts() -> Vec<(&'static str, &'static str)> {
-            LAYOUT_MAP.iter().map(|(k, (m, _))| (*k, *m)).collect()
-        }
+    //    pub fn available_layouts() -> Vec<(&'static str, &'static str)> {
+    //        LAYOUT_MAP.iter().map(|(k, (m, _))| (*k, *m)).collect()
+    //    }
 
-        pub fn unicode_to_key_and_modifier(layout: &str, unicode: u8) -> Option<(u8, u8)> {
-            let (_, layout) = LAYOUT_MAP.get(layout)?;
-            match unicode {
-                #UNICODE_ENTER => Some((*layout.last().unwrap(), 0))
-                #UNICODE_TAB => Some((*layout.last().unwrap(), 0))
-                u if u >= #ASCII_CODE_START && u <= #ASCII_CODE_END =>  {
-                    let keycode = layout.get(u - 0x20).unwrap();
-                    let modifier = determine
+    //    pub fn unicode_to_key_and_modifier(layout: &str, unicode: u8) -> Option<(u8, u8)> {
+    //        let (_, layout) = LAYOUT_MAP.get(layout)?;
+    //        match unicode {
+    //            #UNICODE_ENTER => Some((*layout.last().unwrap(), 0))
+    //            #UNICODE_TAB => Some((*layout.last().unwrap(), 0))
+    //            u if u >= #ASCII_CODE_START && u <= #ASCII_CODE_END =>  {
+    //                let keycode = layout.get(u - 0x20).unwrap();
+    //                let modifier = determine
 
-
-
-    };
+    //};
 
     let out_path = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR not defined"));
 
-    fs::write(out_path.join("generated.rs"), &full_output.to_string())
-        .expect("Failed to write generated output");
+    //fs::write(out_path.join("generated.rs"), &full_output.to_string())
+    //    .expect("Failed to write generated output");
+}
+
+fn generate_layout(layout: &str) -> syn::File {
+    let header_name = format!("{}.h", layout);
+    let defined_layout = format!("#define {}\n{}", layout, KEY_LAYOUTS_HEADER);
+    let bindings = bindgen::Builder::default()
+        .generate_comments(false)
+        .header_contents(&header_name, &defined_layout)
+        .generate()
+        .expect("Unable to generate bindings")
+        .to_string();
+
+    syn::parse_str::<syn::File>(&bindings).expect("Failed to parse bindings")
+}
+
+fn extract_ascii_keycodes(definitions: &syn::File) -> Vec<u16> {
+    definitions
+        .items
+        .iter()
+        .filter_map(|item| find_const_u16_with_name_containing(item, "ASCII_"))
+        .collect()
+}
+
+fn extract_layout_masks(definitions: &syn::File) -> LayoutMasks {
+    let mut iter = definitions.items.iter();
+
+    let shift_mask = iter
+        .find_map(|i| find_const_u16_with_name_containing(i, "SHIFT_MASK"))
+        .expect("Failed to find SHIFT_MASK");
+
+    let ctrl_mask = iter
+        .find_map(|i| find_const_u16_with_name_containing(i, "RCTRL_MASK"))
+        .expect("Failed to find RCTRL_MASK");
+
+    let alt_mask = iter
+        .find_map(|i| find_const_u16_with_name_containing(i, "ALTGR_MASK"))
+        .expect("Failed to find ALTGR_MASK");
+
+    let keycode_mask = iter
+        .find_map(|i| find_const_u16_with_name_containing(i, "KEYCODE_MASK"))
+        .expect("Failed to find KEYCODE_MASK");
+
+    LayoutMasks {
+        shift_mask,
+        alt_mask,
+        ctrl_mask,
+        keycode_mask,
+    }
 }
 
 fn get_keycodes_for_layout(layout: &str, enter_key: u16, tab_key: u16) -> Vec<u16> {
@@ -131,7 +186,7 @@ fn get_keycodes_for_layout(layout: &str, enter_key: u16, tab_key: u16) -> Vec<u1
     if ascii_keycodes.len() != N_ASCII_CHARS_SUPPORTED {
         panic!("Failed to find enough keycodes for layout: {}", layout);
     }
-    
+
     // Add tab and enter keycodes to the end of the ascii ones
     // as the code is dependent on the layout's keycode mask
     ascii_keycodes.push(tab_key & keycode_mask);
