@@ -64,6 +64,7 @@ fn main() {
             let layout_name = layout_key.replace("LAYOUT_", "").replace("_", " ");
             let quote_alt_mask = quote_option(alt_mask);
             let quote_ctrl_mask = quote_option(ctrl_mask);
+            let quote_non_us = quote_option(non_us);
             quote! {
                 m.insert(
                     #layout_key,
@@ -72,6 +73,7 @@ fn main() {
                         #shift_mask,
                         #quote_alt_mask,
                         #quote_ctrl_mask,
+                        #quote_non_us,
                         #keycode_mask,
                         vec![#(#keycodes),*]
                     ),
@@ -153,7 +155,7 @@ fn generate_layout(layout: &str) -> syn::File {
         .generate_comments(false)
         .header_contents(&header_name, &defined_layout)
         .generate()
-        .expect("Unable to generate bindings")
+        .expect(&format!("Unable to generate bindings for {}", layout))
         .to_string();
 
     syn::parse_str::<syn::File>(&bindings).expect("Failed to parse bindings")
@@ -219,7 +221,7 @@ fn get_global_keys() -> GlobalKeys {
         .generate_comments(false)
         .header_contents("base.h", KEY_LAYOUTS_HEADER)
         .generate()
-        .expect("Unable to generate bindings")
+        .expect("Unable to generate base bindings")
         .to_string();
 
     let syntax = syn::parse_str::<syn::File>(&bindings).expect("Failed to parse bindings");
