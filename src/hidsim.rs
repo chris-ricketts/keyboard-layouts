@@ -3,6 +3,8 @@ use structopt::StructOpt;
 use std::fs;
 use std::io::{Error, ErrorKind, Result};
 use std::path::PathBuf;
+use std::thread;
+use std::time::Duration;
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -27,6 +29,19 @@ enum CliOpt {
             help = "The keyboard to use. Defaults to 'LAYOUT_US_ENGLISH'"
         )]
         layout: Option<String>,
+        #[structopt(
+            long = "newline",
+            short = "n",
+            help = "Hit the 'Enter' key after writing the string"
+        )]
+        newline: bool,
+        #[structopt(
+            long = "delay",
+            short = "d",
+            help = "Specify the number of seconds to wait before writing",
+            default_value = "0"
+        )]
+        delay: u64,
         #[structopt(name = "STRING")]
         string: String,
     },
@@ -45,12 +60,23 @@ fn main() -> Result<()> {
         CliOpt::Write {
             hid_file,
             layout,
-            string,
+            newline,
+            delay,
+            mut string,
         } => {
             let hid_file = hid_file.unwrap_or_else(|| PathBuf::from("/dev/hidg0"));
+
             let layout = layout.unwrap_or_else(|| "LAYOUT_US_ENGLISH".to_string());
+
+            if newline {
+                string.push('\n');
+            }
+
             let hid_bytes = keyboard_scancodes::string_to_hid_packets(layout, string)
                 .map_err(|e| Error::new(ErrorKind::Other, format!("{}", e)))?;
+
+            thread::sleep(Duration::from_secs(delay));
+
             fs::write(hid_file, hid_bytes)
         }
     }
