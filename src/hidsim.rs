@@ -2,7 +2,6 @@ use structopt::StructOpt;
 
 use std::fs;
 use std::io::{Error, ErrorKind, Result};
-use std::path::PathBuf;
 use std::thread;
 use std::time::Duration;
 
@@ -19,10 +18,9 @@ enum CliOpt {
         #[structopt(
             long = "hid-file",
             short = "f",
-            help = "The HID file to write to. Defaults to /dev/hidg0",
-            parse(from_os_str)
+            help = "The HID file to write to. Defaults to /dev/hidg0"
         )]
-        hid_file: Option<PathBuf>,
+        hid_file: Option<String>,
         #[structopt(
             long = "layout",
             short = "l",
@@ -42,6 +40,13 @@ enum CliOpt {
             default_value = "0"
         )]
         delay: u64,
+        #[structopt(
+            long = "cooldown",
+            short = "c",
+            help = "Specify the number of milliseconds to wait between sending each packet",
+            default_value = "0"
+        )]
+        cooldown: u64,
         #[structopt(name = "STRING")]
         string: String,
     },
@@ -55,6 +60,7 @@ fn main() -> Result<()> {
             for (key, _) in keyboard_scancodes::available_layouts() {
                 println!("{}", key);
             }
+
             Ok(())
         }
         CliOpt::Write {
@@ -62,9 +68,10 @@ fn main() -> Result<()> {
             layout,
             newline,
             delay,
+            cooldown,
             mut string,
         } => {
-            let hid_file = hid_file.unwrap_or_else(|| PathBuf::from("/dev/hidg0"));
+            let hid_file = hid_file.unwrap_or_else(|| "/dev/hidg0".to_string());
 
             let layout = layout.unwrap_or_else(|| "LAYOUT_US_ENGLISH".to_string());
 
@@ -77,7 +84,12 @@ fn main() -> Result<()> {
 
             thread::sleep(Duration::from_secs(delay));
 
-            fs::write(hid_file, hid_bytes)
+            for packet in hid_bytes.chunks(keyboard_scancodes::HID_PACKET_LEN) {
+                fs::write(&hid_file, packet)?;
+                thread::sleep(Duration::from_millis(cooldown));
+            }
+
+            Ok(())
         }
     }
 }

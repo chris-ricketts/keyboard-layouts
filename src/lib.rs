@@ -8,7 +8,7 @@ const UNICODE_TAB: u16 = 9; // \t
 const UNICODE_FIRST_ASCII: u16 = 0x20; // SPACE
 const UNICODE_LAST_ASCII: u16 = 0x7F; // BACKSPACE
 const KEY_MASK: u16 = 0x3F; // Remove SHIFT/ALT/CTRL from keycode
-const HID_PACKET_LEN: usize = 8;
+pub const HID_PACKET_LEN: usize = 8;
 const HID_PACKET_SUFFIX: [u8; 5] = [0u8; 5];
 const RELEASE_KEYS_HID_PACKET: [u8; 8] = [0u8; 8];
 

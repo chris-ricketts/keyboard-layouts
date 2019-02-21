@@ -7,15 +7,15 @@ use futures::{Async, AsyncSink, Poll, Sink, StartSend, Stream};
 use nix;
 use nix::fcntl;
 use nix::libc;
-use slog_stdlog;
 use slog;
 use slog::Drain;
+use slog_stdlog;
 use tokio_core::reactor::Handle;
 use tokio_io::AsyncRead;
 
-use poll_evented_read_wrapper::PollEventedRead;
-use character_device_file::CharacterDeviceFile;
 use character_device::{CharacterDevice, Decoder, Encoder, SyncSink};
+use character_device_file::CharacterDeviceFile;
+use poll_evented_read_wrapper::PollEventedRead;
 use uhid_codec::*;
 
 pub struct UHIDDevice<T> {
@@ -55,8 +55,12 @@ impl UHIDDevice<PollEventedRead<CharacterDeviceFile<File>>> {
         let fd = fcntl::open(
             path,
             fcntl::OFlag::from_bits(libc::O_RDWR | libc::O_CLOEXEC | libc::O_NONBLOCK).unwrap(),
-            nix::sys::stat::Mode::from_bits(libc::S_IRUSR | libc::S_IWUSR | libc::S_IRGRP | libc::S_IWGRP).unwrap(),
-        ).map_err(|err| {
+            nix::sys::stat::Mode::from_bits(
+                libc::S_IRUSR | libc::S_IWUSR | libc::S_IRGRP | libc::S_IWGRP,
+            )
+            .unwrap(),
+        )
+        .map_err(|err| {
             io::Error::new(
                 io::ErrorKind::Other,
                 format!("Cannot open uhid-cdev {}: {}", path.to_str().unwrap(), err),
@@ -114,7 +118,7 @@ where
         })
     }
 
-    pub fn destory(mut self) -> Result<(), <UHIDCodec as Encoder>::Error> {
+    pub fn destroy(mut self) -> Result<(), <UHIDCodec as Encoder>::Error> {
         self.inner.send(InputEvent::Destroy)?;
         self.inner.close()?;
         Ok(())
