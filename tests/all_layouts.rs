@@ -22,7 +22,7 @@ const RDESC: [u8; 63] = [
 const ALPHA_NUMERIC: &'static str =
     "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const ESCAPED_SYMBOLS: &'static str = "\\#\\!\\$\\%\\&\\'\\(\\)\\*\\+\\,\\-\\.\\/\\:\\;\\<\\=\\>\\?\\@\\\\[\\]\\^\\_\\`\\{\\|\\}\\~\"";
-const EXPECTED_SYMBOLS: &'static str = "#!$%&'()*+,-./:;<=>?@\\[]^_`{|}~\"";
+//const EXPECTED_SYMBOLS: &'static str = "#!$%&'()*+,-./:;<=>?@\\[]^_`{|}~\"";
 
 lazy_static! {
     static ref X_LAYOUT_MAP: HashMap<&'static str, (&'static str, Option<&'static str>)> = hashmap! {
@@ -53,9 +53,9 @@ lazy_static! {
 }
 
 fn set_x_keyboard_layout(layout: &str, variant: Option<&str>) {
-    let mut builder = Command::new("localectl");
+    let mut builder = Command::new("sudo");
 
-    builder.args(&["set-x11-keymap", layout]);
+    builder.args(&["localectl", "set-x11-keymap", layout]);
     eprintln!("Setting layout: {}", layout);
 
     if let Some(variant) = variant {
@@ -73,7 +73,7 @@ fn set_x_keyboard_layout(layout: &str, variant: Option<&str>) {
         .expect("Failed to setup console");
 }
 
-fn write_string_for_layout(string: &str, expected: &str, layout: &str) {
+fn write_string_for_layout(string: &str, layout: &str) {
     let create_params = CreateParams {
         name: String::from("all_layouts_uhid"),
         phys: String::from(""),
@@ -111,7 +111,7 @@ fn write_string_for_layout(string: &str, expected: &str, layout: &str) {
 
     assert_eq!(
         input.trim(),
-        expected,
+        string,
         "Unexpected output for layout: {}",
         layout
     );
@@ -153,11 +153,11 @@ fn create_uhid_device() {
 }
 
 macro_rules! test_layout {
-    ($f:ident, $l:ident, $s:ident, $e:ident) => {
+    ($f:ident, $l:ident, $s:ident) => {
         #[test]
         fn $f() {
             run_layout_test(stringify!($l), || {
-                write_string_for_layout($s, $e, stringify!($l));
+                write_string_for_layout($s, stringify!($l));
             });
         }
     };
@@ -166,276 +166,230 @@ macro_rules! test_layout {
 test_layout!(
     test_alphanumeric_layout_german,
     LAYOUT_GERMAN,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_portuguese_brazilian,
     LAYOUT_PORTUGUESE_BRAZILIAN,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_french,
     LAYOUT_FRENCH,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_us_english,
     LAYOUT_US_ENGLISH,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_finnish,
     LAYOUT_FINNISH,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_spanish_latin_america,
     LAYOUT_SPANISH_LATIN_AMERICA,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_french_belgian,
     LAYOUT_FRENCH_BELGIAN,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_irish,
     LAYOUT_IRISH,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_swedish,
     LAYOUT_SWEDISH,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_german_swiss,
     LAYOUT_GERMAN_SWISS,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_canadian_french,
     LAYOUT_CANADIAN_FRENCH,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_spanish,
     LAYOUT_SPANISH,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_portuguese,
     LAYOUT_PORTUGUESE,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_icelandic,
     LAYOUT_ICELANDIC,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_turkish,
     LAYOUT_TURKISH,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_us_international,
     LAYOUT_US_INTERNATIONAL,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_canadian_multilingual,
     LAYOUT_CANADIAN_MULTILINGUAL,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_french_swiss,
     LAYOUT_FRENCH_SWISS,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_danish,
     LAYOUT_DANISH,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_italian,
     LAYOUT_ITALIAN,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_german_mac,
     LAYOUT_GERMAN_MAC,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_norwegian,
     LAYOUT_NORWEGIAN,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_alphanumeric_layout_united_kingdom,
     LAYOUT_UNITED_KINGDOM,
-    ALPHA_NUMERIC,
     ALPHA_NUMERIC
 );
 test_layout!(
     test_symbols_layout_german,
     LAYOUT_GERMAN,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_portuguese_brazilian,
     LAYOUT_PORTUGUESE_BRAZILIAN,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_french,
     LAYOUT_FRENCH,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_us_english,
     LAYOUT_US_ENGLISH,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_finnish,
     LAYOUT_FINNISH,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_spanish_latin_america,
     LAYOUT_SPANISH_LATIN_AMERICA,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_french_belgian,
     LAYOUT_FRENCH_BELGIAN,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_irish,
     LAYOUT_IRISH,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_swedish,
     LAYOUT_SWEDISH,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_german_swiss,
     LAYOUT_GERMAN_SWISS,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_canadian_french,
     LAYOUT_CANADIAN_FRENCH,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_spanish,
     LAYOUT_SPANISH,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_portuguese,
     LAYOUT_PORTUGUESE,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_icelandic,
     LAYOUT_ICELANDIC,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_turkish,
     LAYOUT_TURKISH,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_us_international,
     LAYOUT_US_INTERNATIONAL,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_canadian_multilingual,
     LAYOUT_CANADIAN_MULTILINGUAL,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_french_swiss,
     LAYOUT_FRENCH_SWISS,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_danish,
     LAYOUT_DANISH,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_italian,
     LAYOUT_ITALIAN,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_german_mac,
     LAYOUT_GERMAN_MAC,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_norwegian,
     LAYOUT_NORWEGIAN,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
 test_layout!(
     test_symbols_layout_united_kingdom,
     LAYOUT_UNITED_KINGDOM,
-    ESCAPED_SYMBOLS,
-    EXPECTED_SYMBOLS
+    ESCAPED_SYMBOLS
 );
