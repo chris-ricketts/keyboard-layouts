@@ -24,7 +24,21 @@ struct LayoutMasks {
     pub alt_mask: Option<u16>,
     pub ctrl_mask: Option<u16>,
     pub non_us: Option<u16>,
+    pub dead_keys_mask: Option<u16>,
     pub keycode_mask: u16,
+}
+
+struct LayoutDeadKeys {
+    pub acute_accent_bits: Option<u16>,
+    pub deadkey_accute_accent: Option<u16>,
+    pub cedilla_bits: Option<u16>,
+    pub deadkey_cedilla: Option<u16>,
+    pub diaeresis_bits: Option<u16>,
+    pub deadkey_diaeresis: Option<u16>,
+    pub grave_accent_bits: Option<u16>,
+    pub deadkey_grave_accent: Option<u16>,
+    pub circumflex_bits: Option<u16>,
+    pub deadkey_circumflex: Option<u16>,
 }
 
 fn main() {
@@ -36,22 +50,39 @@ fn main() {
         right_ctrl_modifier,
     } = get_global_keys();
 
+    // Layout and DeadKeys come from src/types.rs
     let layouts = find_layout_definitions()
         .iter()
         .map(|def| {
-            dbg!(def);
             let layout = generate_layout(def);
+
             let LayoutMasks {
                 shift_mask,
                 alt_mask,
                 ctrl_mask,
                 non_us,
+                dead_keys_mask,
                 keycode_mask,
             } = extract_layout_masks(&layout, def);
+
+            let LayoutDeadKeys {
+                acute_accent_bits,
+                deadkey_accute_accent,
+                cedilla_bits,
+                deadkey_cedilla,
+                diaeresis_bits,
+                deadkey_diaeresis,
+                grave_accent_bits,
+                deadkey_grave_accent,
+                circumflex_bits,
+                deadkey_circumflex,
+            } = extract_layout_deadkeys(&layout);
+
             let keycodes = extract_ascii_keycodes(&layout)
                 .iter()
                 .map(|k| k & keycode_mask)
                 .collect::<Vec<u16>>();
+
             assert_eq!(
                 N_ASCII_CHARS_SUPPORTED,
                 keycodes.len(),
@@ -60,11 +91,24 @@ fn main() {
                 keycodes.len(),
                 N_ASCII_CHARS_SUPPORTED
             );
+
             let layout_key = def.to_string();
             let layout_name = layout_key.replace("LAYOUT_", "").replace("_", " ");
             let quote_alt_mask = quote_option(alt_mask);
             let quote_ctrl_mask = quote_option(ctrl_mask);
             let quote_non_us = quote_option(non_us);
+            let quote_dead_keys_mask = quote_option(dead_keys_mask);
+            let quote_acute_accent_bits = quote_option(acute_accent_bits);
+            let quote_deadkey_accute_accent = quote_option(deadkey_accute_accent);
+            let quote_cedilla_bits = quote_option(cedilla_bits);
+            let quote_deadkey_cedilla = quote_option(deadkey_cedilla);
+            let quote_diaeresis_bits = quote_option(diaeresis_bits);
+            let quote_deadkey_diaeresis = quote_option(deadkey_diaeresis);
+            let quote_grave_accent_bits = quote_option(grave_accent_bits);
+            let quote_deadkey_grave_accent = quote_option(deadkey_grave_accent);
+            let quote_circumflex_bits = quote_option(circumflex_bits);
+            let quote_deadkey_circumflex = quote_option(deadkey_circumflex);
+
             quote! {
                 m.insert(
                     #layout_key,
@@ -74,14 +118,28 @@ fn main() {
                         #quote_alt_mask,
                         #quote_ctrl_mask,
                         #quote_non_us,
+                        #quote_dead_keys_mask,
                         #keycode_mask,
-                        vec![#(#keycodes),*]
+                        vec![#(#keycodes),*],
+                        DeadKeys::new(
+                            #quote_acute_accent_bits,
+                            #quote_deadkey_accute_accent,
+                            #quote_cedilla_bits,
+                            #quote_deadkey_cedilla,
+                            #quote_diaeresis_bits,
+                            #quote_deadkey_diaeresis,
+                            #quote_grave_accent_bits,
+                            #quote_deadkey_grave_accent,
+                            #quote_circumflex_bits,
+                            #quote_deadkey_circumflex,
+                        )
                     ),
                 );
             }
         })
         .collect::<Vec<TokenStream>>();
 
+    // Layout comes from src/types.rs
     let full_output = quote! {
         use std::collections::HashMap;
         use lazy_static::lazy_static;
@@ -91,39 +149,6 @@ fn main() {
         pub const SHIFT_MODIFIER: u16 = #shift_modifier;
         pub const RIGHT_ALT_MODIFIER: u16 = #right_alt_modifier;
         pub const RIGHT_CTRL_MODIFIER: u16 = #right_ctrl_modifier;
-
-        pub struct Layout {
-            pub layout_name: &'static str,
-            pub shift_mask: u16,
-            pub alt_mask: Option<u16>,
-            pub ctrl_mask: Option<u16>,
-            pub non_us: Option<u16>,
-            pub keycode_mask: u16,
-            pub keycodes: Box<[u16]>
-        }
-
-        impl Layout {
-            pub fn new(
-                layout_name: &'static str,
-                shift_mask: u16,
-                alt_mask: Option<u16>,
-                ctrl_mask: Option<u16>,
-                non_us: Option<u16>,
-                keycode_mask: u16,
-                keycodes: Vec<u16>,
-            ) -> Layout {
-                let keycodes = keycodes.into_boxed_slice();
-                Layout {
-                    layout_name,
-                    shift_mask,
-                    alt_mask,
-                    ctrl_mask,
-                    non_us,
-                    keycode_mask,
-                    keycodes,
-                }
-            }
-        }
 
         lazy_static! {
             pub static ref LAYOUT_MAP: HashMap<&'static str, Layout> = {
@@ -170,36 +195,54 @@ fn extract_ascii_keycodes(definitions: &syn::File) -> Vec<u16> {
 }
 
 fn extract_layout_masks(definitions: &syn::File, layout: &str) -> LayoutMasks {
-    let items = &definitions.items;
-
-    let shift_mask = items
-        .iter()
-        .find_map(|i| find_const_u16_with_name_containing(i, "SHIFT_MASK"))
-        .expect("Failed to find SHIFT_MASK");
-
-    let ctrl_mask = items
-        .iter()
-        .find_map(|i| find_const_u16_with_name_containing(i, "RCTRL_MASK"));
-
-    let alt_mask = items
-        .iter()
-        .find_map(|i| find_const_u16_with_name_containing(i, "ALTGR_MASK"));
-
-    let non_us = items
-        .iter()
-        .find_map(|i| find_const_u16_with_name_containing(i, "KEY_NON_US_100"));
-
-    let keycode_mask = items
-        .iter()
-        .find_map(|i| find_const_u16_with_name_containing(i, "KEYCODE_MASK"))
-        .expect(&format!("Failed to find KEYCODE_MASK for {}", layout));
-
     LayoutMasks {
-        shift_mask,
-        alt_mask,
-        ctrl_mask,
-        non_us,
-        keycode_mask,
+        shift_mask: find_key_definition(definitions, "SHIFT_MASK")
+            .expect(&format!("Failed to find SHIFT_MASK for {}", layout)),
+        alt_mask: find_key_definition(definitions, "ALT_MASK"),
+        ctrl_mask: find_key_definition(definitions, "CTRL_MASK"),
+        non_us: find_key_definition(definitions, "NON_US"),
+        dead_keys_mask: find_key_definition(definitions, "DEAD_KEYS_MASK"),
+        keycode_mask: find_key_definition(definitions, "KEYCODE_MASK")
+            .expect(&format!("Failed to find KEYCODE_MASK for {}", layout)),
+    }
+}
+
+fn extract_layout_deadkeys(definitions: &syn::File) -> LayoutDeadKeys {
+    LayoutDeadKeys {
+        acute_accent_bits: find_key_definition(definitions, "ACUTE_ACCENT_BITS"),
+        deadkey_accute_accent: find_key_definition(definitions, "DEADKEY_ACCUTE_ACCENT"),
+        cedilla_bits: find_key_definition(definitions, "CEDILLA_BITS"),
+        deadkey_cedilla: find_key_definition(definitions, "DEADKEY_CEDILLA"),
+        diaeresis_bits: find_key_definition(definitions, "DIAERESIS_BITS"),
+        deadkey_diaeresis: find_key_definition(definitions, "DEADKEY_DIAERESIS"),
+        grave_accent_bits: find_key_definition(definitions, "GRAVE_ACCENT_BITS"),
+        deadkey_grave_accent: find_key_definition(definitions, "DEADKEY_GRAVE_ACCENT"),
+        circumflex_bits: find_key_definition(definitions, "CIRCUMFLEX_BITS"),
+        deadkey_circumflex: find_key_definition(definitions, "DEADKEY_CIRCUMFLEX"),
+    }
+}
+
+fn get_global_keys() -> GlobalKeys {
+    let bindings = bindgen::Builder::default()
+        .generate_comments(false)
+        .header_contents("base.h", KEY_LAYOUTS_HEADER)
+        .generate()
+        .expect("Unable to generate base bindings")
+        .to_string();
+
+    let definitions = syn::parse_str::<syn::File>(&bindings).expect("Failed to parse bindings");
+
+    GlobalKeys {
+        enter: find_key_definition(&definitions, "KEY_ENTER")
+            .expect("Failed to find global key: KEY_ENTER"),
+        tab: find_key_definition(&definitions, "KEY_TAB")
+            .expect("Failed to find global key: KEY_TAB"),
+        shift_modifier: find_key_definition(&definitions, "MODIFIERKEY_SHIFT")
+            .expect("Failed to find global key: MODIFIERKEY_SHIFT"),
+        right_alt_modifier: find_key_definition(&definitions, "MODIFIERKEY_RIGHT_ALT")
+            .expect("Failed to find global key: MODIFIERKEY_RIGHT_ALT"),
+        right_ctrl_modifier: find_key_definition(&definitions, "MODIFIERKEY_RIGHT_CTRL")
+            .expect("Failed to find global key: MODIFIERKEY_RIGHT_CTRL"),
     }
 }
 
@@ -216,53 +259,11 @@ fn find_layout_definitions() -> Vec<&'static str> {
         .collect()
 }
 
-fn get_global_keys() -> GlobalKeys {
-    let bindings = bindgen::Builder::default()
-        .generate_comments(false)
-        .header_contents("base.h", KEY_LAYOUTS_HEADER)
-        .generate()
-        .expect("Unable to generate base bindings")
-        .to_string();
-
-    let syntax = syn::parse_str::<syn::File>(&bindings).expect("Failed to parse bindings");
-
-    let enter = syntax
+fn find_key_definition(definitions: &syn::File, label: &str) -> Option<u16> {
+    definitions
         .items
         .iter()
-        .find_map(|item| find_const_u16_with_name_containing(item, "KEY_ENTER"))
-        .expect("Failed to find KEY_ENTER");
-
-    let tab = syntax
-        .items
-        .iter()
-        .find_map(|item| find_const_u16_with_name_containing(item, "KEY_TAB"))
-        .expect("Failed to find KEY_TAB");
-
-    let shift_modifier = syntax
-        .items
-        .iter()
-        .find_map(|item| find_const_u16_with_name_containing(item, "MODIFIERKEY_SHIFT"))
-        .expect("Failed to find MODIFIERKEY_SHIFT");
-
-    let right_alt_modifier = syntax
-        .items
-        .iter()
-        .find_map(|item| find_const_u16_with_name_containing(item, "MODIFIERKEY_RIGHT_ALT"))
-        .expect("Failed to find MODIFIERKEY_RIGHT_ALT");
-
-    let right_ctrl_modifier = syntax
-        .items
-        .iter()
-        .find_map(|item| find_const_u16_with_name_containing(item, "MODIFIERKEY_RIGHT_CTRL"))
-        .expect("Failed to find MODIFIERKEY_RIGHT_CTRL");
-
-    GlobalKeys {
-        enter,
-        tab,
-        shift_modifier,
-        right_alt_modifier,
-        right_ctrl_modifier,
-    }
+        .find_map(|i| find_const_u16_with_name_containing(i, label))
 }
 
 fn find_const_u16_with_name_containing(item: &Item, name: &str) -> Option<u16> {

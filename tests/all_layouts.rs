@@ -101,6 +101,7 @@ fn write_string_for_layout(string: &str, layout: &str) {
     // std::io::stdin().read_line(&mut input).unwrap();
 
     for packet in packets.chunks(8) {
+        eprintln!("Mod: {} Key: {}", packet[0], packet[2]);
         uhid_device.send_input(&packet).unwrap();
         thread::sleep(Duration::from_millis(50));
     }

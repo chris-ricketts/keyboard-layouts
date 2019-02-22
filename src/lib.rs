@@ -47,6 +47,11 @@ pub fn string_to_keys_and_modifiers<S: AsRef<str>>(
     for c in string.chars() {
         let keycode =
             keycode_for_unicode(layout, c as u16).ok_or_else(|| Error::InvalidCharacter(c))?;
+        //if let Some(dead_keycode) = deadkey_for_keycode(layout, keycode) {
+        //    let dead_key = key_for_keycode(layout, dead_keycode);
+        //    let dead_modifier = modifier_for_keycode(layout, dead_keycode);
+        //    keys_and_modifiers.push((dead_key, dead_modifier));
+        //}
         let key = key_for_keycode(layout, keycode);
         let modifier = modifier_for_keycode(layout, keycode);
         keys_and_modifiers.push((key, modifier));
@@ -78,6 +83,39 @@ fn keycode_for_unicode(layout: &Layout, unicode: u16) -> Option<u16> {
         }
         _ => None,
     }
+}
+
+// https://github.com/PaulStoffregen/cores/blob/master/teensy3/usb_keyboard.c
+fn deadkey_for_keycode(layout: &Layout, keycode: u16) -> Option<u16> {
+    layout.dead_keys_mask.and_then(|dkm| {
+        let keycode = keycode & dkm;
+        if let Some(acute_accent_bits) = layout.deadkeys.acute_accent_bits {
+            if keycode == acute_accent_bits {
+                return layout.deadkeys.deadkey_accute_accent;
+            }
+        }
+        if let Some(cedilla_bits) = layout.deadkeys.cedilla_bits {
+            if keycode == cedilla_bits {
+                return layout.deadkeys.deadkey_cedilla;
+            }
+        }
+        if let Some(diaeresis_bits) = layout.deadkeys.diaeresis_bits {
+            if keycode == diaeresis_bits {
+                return layout.deadkeys.deadkey_diaeresis;
+            }
+        }
+        if let Some(grave_accent_bits) = layout.deadkeys.grave_accent_bits {
+            if keycode == grave_accent_bits {
+                return layout.deadkeys.deadkey_grave_accent;
+            }
+        }
+        if let Some(circumflex_bits) = layout.deadkeys.circumflex_bits {
+            if keycode == circumflex_bits {
+                return layout.deadkeys.deadkey_circumflex;
+            }
+        }
+        None
+    })
 }
 
 // https://github.com/PaulStoffregen/cores/blob/master/usb_hid/usb_api.cpp#L196
