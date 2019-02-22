@@ -47,11 +47,11 @@ pub fn string_to_keys_and_modifiers<S: AsRef<str>>(
     for c in string.chars() {
         let keycode =
             keycode_for_unicode(layout, c as u16).ok_or_else(|| Error::InvalidCharacter(c))?;
-        //if let Some(dead_keycode) = deadkey_for_keycode(layout, keycode) {
-        //    let dead_key = key_for_keycode(layout, dead_keycode);
-        //    let dead_modifier = modifier_for_keycode(layout, dead_keycode);
-        //    keys_and_modifiers.push((dead_key, dead_modifier));
-        //}
+        if let Some(dead_keycode) = deadkey_for_keycode(layout, keycode) {
+            let dead_key = dbg!(key_for_keycode(layout, dead_keycode));
+            let dead_modifier = dbg!(modifier_for_keycode(layout, dead_keycode));
+            keys_and_modifiers.push((dead_key, dead_modifier));
+        }
         let key = key_for_keycode(layout, keycode);
         let modifier = modifier_for_keycode(layout, keycode);
         keys_and_modifiers.push((key, modifier));
@@ -87,6 +87,7 @@ fn keycode_for_unicode(layout: &Layout, unicode: u16) -> Option<u16> {
 
 // https://github.com/PaulStoffregen/cores/blob/master/teensy3/usb_keyboard.c
 fn deadkey_for_keycode(layout: &Layout, keycode: u16) -> Option<u16> {
+    dbg!(layout.dead_keys_mask);
     layout.dead_keys_mask.and_then(|dkm| {
         let keycode = keycode & dkm;
         if let Some(acute_accent_bits) = layout.deadkeys.acute_accent_bits {
