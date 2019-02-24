@@ -198,8 +198,8 @@ fn extract_layout_masks(definitions: &syn::File, layout: &str) -> LayoutMasks {
     LayoutMasks {
         shift_mask: find_key_definition(definitions, "SHIFT_MASK")
             .expect(&format!("Failed to find SHIFT_MASK for {}", layout)),
-        alt_mask: find_key_definition(definitions, "ALT_MASK"),
-        ctrl_mask: find_key_definition(definitions, "CTRL_MASK"),
+        alt_mask: find_key_definition(definitions, "ALTGR_MASK"),
+        ctrl_mask: find_key_definition(definitions, "RCTRL_MASK"),
         non_us: find_key_definition(definitions, "KEY_NON_US_100"),
         dead_keys_mask: find_key_definition(definitions, "DEADKEYS_MASK"),
         keycode_mask: find_key_definition(definitions, "KEYCODE_MASK")
