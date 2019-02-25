@@ -20,7 +20,7 @@ bytes = "0.4"
 structopt = "0.2"
 
 [dev-dependencies]
-linux-uhid-tokio = { path = "uhid-tokio" }
+linux-uhid-tokio = { path = "uhid-tokio", version = "0.2" }
 futures = "0.1.15"
 tokio-core = "0.1.9"
 bytes = "0.4"

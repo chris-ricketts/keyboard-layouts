@@ -3,6 +3,7 @@ name = "gen_layouts"
 version = "0.1.0"
 authors = ["chris ricketts <chris.ricketts@steribar.com>"]
 edition = "2018"
+exclude = ["keylayouts.h"]
 
 [dependencies]
 lazy_static = "1.2.0"
