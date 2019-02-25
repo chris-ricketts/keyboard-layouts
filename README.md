@@ -56,27 +56,49 @@ ARGS:
 ## Supported Layouts 
 
 Spanish
+
 Canadian French
+
 German Mac
+
 German Swiss
+
 Icelandic
+
 United Kingdom
+
 Italian
+
 French Swiss
+
 Finnish
+
 Danish
+
 French
+
 German
+
 Turkish
+
 French Belgian
+
 Portuguese
+
 Canadian Multilingual
+
 Spanish Latin America
+
 US English
+
 US International
+
 Swedish
+
 Portuguese Brazilian
+
 Irish
+
 Norwegian
 
 ## Testing 
