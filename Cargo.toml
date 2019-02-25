@@ -15,7 +15,7 @@ name = "kbsim"
 path = "src/kbsim.rs"
 
 [dependencies]
-gen_layouts = { path = "gen_layouts" }
+gen_layouts = { path = "gen_layouts", version = "*" }
 bytes = "0.4"
 structopt = "0.2"
 
