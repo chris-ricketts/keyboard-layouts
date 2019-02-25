@@ -9,6 +9,8 @@ pub struct DeadKeys {
     pub deadkey_grave_accent: Option<u16>,
     pub circumflex_bits: Option<u16>,
     pub deadkey_circumflex: Option<u16>,
+    pub tilde_bits: Option<u16>,
+    pub deadkey_tilde: Option<u16>,
 }
 
 pub struct Layout {
@@ -35,6 +37,8 @@ impl DeadKeys {
         deadkey_grave_accent: Option<u16>,
         circumflex_bits: Option<u16>,
         deadkey_circumflex: Option<u16>,
+        tilde_bits: Option<u16>,
+        deadkey_tilde: Option<u16>,
     ) -> DeadKeys {
         DeadKeys {
             acute_accent_bits,
@@ -47,6 +51,8 @@ impl DeadKeys {
             deadkey_grave_accent,
             circumflex_bits,
             deadkey_circumflex,
+            tilde_bits,
+            deadkey_tilde,
         }
     }
 }

@@ -39,6 +39,8 @@ struct LayoutDeadKeys {
     pub deadkey_grave_accent: Option<u16>,
     pub circumflex_bits: Option<u16>,
     pub deadkey_circumflex: Option<u16>,
+    pub tilde_bits: Option<u16>,
+    pub deadkey_tilde: Option<u16>,
 }
 
 fn main() {
@@ -76,6 +78,8 @@ fn main() {
                 deadkey_grave_accent,
                 circumflex_bits,
                 deadkey_circumflex,
+                tilde_bits,
+                deadkey_tilde,
             } = extract_layout_deadkeys(&layout);
 
             let keycodes = extract_ascii_keycodes(&layout)
@@ -108,6 +112,8 @@ fn main() {
             let quote_deadkey_grave_accent = quote_option(deadkey_grave_accent);
             let quote_circumflex_bits = quote_option(circumflex_bits);
             let quote_deadkey_circumflex = quote_option(deadkey_circumflex);
+            let quote_tilde_bits = quote_option(tilde_bits);
+            let quote_deadkey_tilde = quote_option(deadkey_tilde);
 
             quote! {
                 m.insert(
@@ -132,6 +138,8 @@ fn main() {
                             #quote_deadkey_grave_accent,
                             #quote_circumflex_bits,
                             #quote_deadkey_circumflex,
+                            #quote_tilde_bits,
+                            #quote_deadkey_tilde,
                         )
                     ),
                 );
@@ -219,6 +227,8 @@ fn extract_layout_deadkeys(definitions: &syn::File) -> LayoutDeadKeys {
         deadkey_grave_accent: find_key_definition(definitions, "DEADKEY_GRAVE_ACCENT"),
         circumflex_bits: find_key_definition(definitions, "CIRCUMFLEX_BITS"),
         deadkey_circumflex: find_key_definition(definitions, "DEADKEY_CIRCUMFLEX"),
+        tilde_bits: find_key_definition(definitions, "TILDE_BITS"),
+        deadkey_tilde: find_key_definition(definitions, "DEADKEY_TILDE"),
     }
 }
 

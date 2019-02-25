@@ -34,15 +34,13 @@ pub fn available_layouts() -> Vec<(&'static str, &'static str)> {
         .collect()
 }
 
-pub fn string_to_keys_and_modifiers<S: AsRef<str>>(
-    layout_key: S,
-    string: S,
+pub fn string_to_keys_and_modifiers(
+    layout_key: &str,
+    string: &str,
 ) -> Result<Vec<(u8, u8)>, Error> {
-    let layout_key = layout_key.as_ref();
     let layout = LAYOUT_MAP
         .get(layout_key)
         .ok_or_else(|| Error::InvalidLayoutKey(layout_key.to_string()))?;
-    let string = string.as_ref();
     let mut keys_and_modifiers: Vec<(u8, u8)> = Vec::with_capacity(string.len());
     for c in string.chars() {
         let keycode =
@@ -59,7 +57,7 @@ pub fn string_to_keys_and_modifiers<S: AsRef<str>>(
     Ok(keys_and_modifiers)
 }
 
-pub fn string_to_hid_packets<S: AsRef<str>>(layout_key: S, string: S) -> Result<Bytes, Error> {
+pub fn string_to_hid_packets(layout_key: &str, string: &str) -> Result<Bytes, Error> {
     let keys_and_modifiers = string_to_keys_and_modifiers(layout_key, string)?;
     let mut packet_bytes = BytesMut::with_capacity(HID_PACKET_LEN * keys_and_modifiers.len() * 2);
     for (key, modifier) in keys_and_modifiers.iter() {
@@ -87,7 +85,6 @@ fn keycode_for_unicode(layout: &Layout, unicode: u16) -> Option<u16> {
 
 // https://github.com/PaulStoffregen/cores/blob/master/teensy3/usb_keyboard.c
 fn deadkey_for_keycode(layout: &Layout, keycode: u16) -> Option<u16> {
-    dbg!(layout.dead_keys_mask);
     layout.dead_keys_mask.and_then(|dkm| {
         let keycode = keycode & dkm;
         if let Some(acute_accent_bits) = layout.deadkeys.acute_accent_bits {
@@ -115,6 +112,11 @@ fn deadkey_for_keycode(layout: &Layout, keycode: u16) -> Option<u16> {
                 return layout.deadkeys.deadkey_circumflex;
             }
         }
+        if let Some(tilde_bits) = layout.deadkeys.tilde_bits {
+            if keycode == tilde_bits {
+                return layout.deadkeys.deadkey_tilde;
+            }
+        }
         None
     })
 }
@@ -123,18 +125,21 @@ fn deadkey_for_keycode(layout: &Layout, keycode: u16) -> Option<u16> {
 fn modifier_for_keycode(layout: &Layout, keycode: u16) -> u8 {
     let mut modifier = 0u16;
 
+    dbg!(keycode & layout.shift_mask);
     if keycode & layout.shift_mask > 0 {
         modifier |= SHIFT_MODIFIER;
     }
 
-    if let Some(mask) = layout.alt_mask {
-        if keycode & mask > 0 {
+    if let Some(alt_mask) = layout.alt_mask {
+        dbg!(keycode & alt_mask);
+        if keycode & alt_mask > 0 {
             modifier |= RIGHT_ALT_MODIFIER;
         }
     }
 
-    if let Some(mask) = layout.ctrl_mask {
-        if keycode & mask > 0 {
+    if let Some(ctrl_mask) = layout.ctrl_mask {
+        dbg!(keycode & ctrl_mask);
+        if keycode & ctrl_mask > 0 {
             modifier |= RIGHT_CTRL_MODIFIER;
         }
     }

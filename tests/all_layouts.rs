@@ -28,7 +28,8 @@ lazy_static! {
     static ref X_LAYOUT_MAP: HashMap<&'static str, (&'static str, Option<&'static str>)> = hashmap! {
         "LAYOUT_GERMAN" => ("de", None),
         "LAYOUT_PORTUGUESE_BRAZILIAN" => ("br", None),
-        "LAYOUT_FRENCH" => ("fr", None),
+        // latin9 enables dead grave accent
+        "LAYOUT_FRENCH" => ("fr", Some("latin9")),
         "LAYOUT_US_ENGLISH" => ("us", None),
         "LAYOUT_FINNISH" => ("fi", None),
         "LAYOUT_SPANISH_LATIN_AMERICA" => ("latam",  None),
@@ -42,7 +43,8 @@ lazy_static! {
         "LAYOUT_ICELANDIC" => ("is", None),
         "LAYOUT_TURKISH" => ("tr", None),
         "LAYOUT_US_INTERNATIONAL" => ("us", Some("intl")),
-        "LAYOUT_CANADIAN_MULTILINGUAL" => ("ca", Some("multi")),
+        // use canadian multix to be inline with Windows Canadian Multilingual standard
+        "LAYOUT_CANADIAN_MULTILINGUAL" => ("ca", Some("multix")),
         "LAYOUT_FRENCH_SWISS" => ("ch", Some("fr")),
         "LAYOUT_DANISH" => ("dk", None),
         "LAYOUT_ITALIAN" => ("it", None),
@@ -96,9 +98,9 @@ fn write_string_for_layout(string: &str, layout: &str) {
 
     uhid_device.send_input(&[0u8; 8]).unwrap();
 
-    thread::sleep(Duration::from_millis(100));
+    thread::sleep(Duration::from_millis(500));
     // helps when debugging testing to wait on enter being pressed in console
-    // std::io::stdin().read_line(&mut input).unwrap();
+    std::io::stdin().read_line(&mut input).unwrap();
 
     for packet in packets.chunks(8) {
         eprintln!("Mod: {} Key: {}", packet[0], packet[2]);
@@ -111,7 +113,7 @@ fn write_string_for_layout(string: &str, layout: &str) {
     std::io::stdin().read_line(&mut input).unwrap();
 
     assert_eq!(
-        input.trim(),
+        input.trim().replace(" ", ""),
         string,
         "Unexpected output for layout: {}",
         layout

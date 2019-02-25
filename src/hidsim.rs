@@ -93,7 +93,7 @@ fn main() -> Result<()> {
                 string.push('\n');
             }
 
-            let hid_bytes = keyboard_scancodes::string_to_hid_packets(layout, string)
+            let hid_bytes = keyboard_scancodes::string_to_hid_packets(&layout, &string)
                 .map_err(|e| Error::new(ErrorKind::Other, format!("{}", e)))?;
 
             thread::sleep(Duration::from_secs(delay));
@@ -109,15 +109,26 @@ fn main() -> Result<()> {
             let layout = layout.unwrap_or_else(|| "LAYOUT_US_ENGLISH".to_string());
 
             let keys_and_modifiers =
-                keyboard_scancodes::string_to_keys_and_modifiers(layout, string)
+                keyboard_scancodes::string_to_keys_and_modifiers(&layout, &string)
                     .map_err(|e| Error::new(ErrorKind::Other, format!("{}", e)))?;
 
-            for (i, (k, m)) in keys_and_modifiers.iter().enumerate() {
-                // Don't print key releases
-                if i % 2 == 0 {
-                    println!("Modifier: {} Key: {}", m, k);
-                }
-            }
+            keys_and_modifiers
+                .iter()
+                .enumerate()
+                .filter_map(
+                    |(idx, (k, m))| {
+                        if idx % 2 == 0 {
+                            Some((k, m))
+                        } else {
+                            None
+                        }
+                    },
+                )
+                .zip(string.chars())
+                .for_each(|((k, m), c)| {
+                    println!("'{}': modifier = {} key = {}", c, m, k);
+                });
+
             Ok(())
         }
     }
