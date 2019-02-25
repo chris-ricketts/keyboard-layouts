@@ -3,6 +3,12 @@ name = "keyboard-layouts"
 version = "0.1.0"
 authors = ["chris ricketts <chris.ricketts@steribar.com>"]
 edition = "2018"
+description = "Keyboard layout keymaps with an API to generate HID packets"
+readme = "README.md"
+keywords = ["keyboard", "layouts", "hid"]
+exclude = [".gitignore"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Chris-Ricketts/keyboard-layouts"
 
 [[bin]]
 name = "kbsim"

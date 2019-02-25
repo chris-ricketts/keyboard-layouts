@@ -29,31 +29,55 @@ On Linux you can either:
 
 I'm afraid for Windows and Mac I have no idea.
 
+## kbsim CLI tool
+
+There is a CLI tool, `kbsim`, included that can be useful.
+```
+USAGE:
+    kbsim [FLAGS] [OPTIONS] [STRING]
+
+FLAGS:
+    -h, --help       Prints help information
+    -n, --newline    Hit the 'Enter' key after writing the string
+    -V, --version    Prints version information
+
+OPTIONS:
+    -c, --cooldown <cooldown>    Specify the number of milliseconds to wait between sending each HID packet to the
+                                 device file [default: 0]
+    -d, --delay <delay>          Specify the number of seconds to wait before writing [default: 0]
+    -f, --hid-file <hid_file>    The HID file to write to. Defaults to /dev/hidg0
+    -l, --layout <layout>        The keyboard layout to use. Specify 'list' to show all available layouts [default:
+                                 LAYOUT_US_ENGLISH]
+
+ARGS:
+    <STRING>  
+```
+
 ## Supported Layouts 
 
-- LAYOUT_SPANISH
-- LAYOUT_CANADIAN_FRENCH
-- LAYOUT_GERMAN_MAC
-- LAYOUT_GERMAN_SWISS
-- LAYOUT_ICELANDIC
-- LAYOUT_UNITED_KINGDOM
-- LAYOUT_ITALIAN
-- LAYOUT_FRENCH_SWISS
-- LAYOUT_FINNISH
-- LAYOUT_DANISH
-- LAYOUT_FRENCH
-- LAYOUT_GERMAN
-- LAYOUT_TURKISH
-- LAYOUT_FRENCH_BELGIAN
-- LAYOUT_PORTUGUESE
-- LAYOUT_CANADIAN_MULTILINGUAL
-- LAYOUT_SPANISH_LATIN_AMERICA
-- LAYOUT_US_ENGLISH
-- LAYOUT_US_INTERNATIONAL
-- LAYOUT_SWEDISH
-- LAYOUT_PORTUGUESE_BRAZILIAN
-- LAYOUT_IRISH
-- LAYOUT_NORWEGIAN
+Spanish
+Canadian French
+German Mac
+German Swiss
+Icelandic
+United Kingdom
+Italian
+French Swiss
+Finnish
+Danish
+French
+German
+Turkish
+French Belgian
+Portuguese
+Canadian Multilingual
+Spanish Latin America
+US English
+US International
+Swedish
+Portuguese Brazilian
+Irish
+Norwegian
 
 ## Testing 
 
