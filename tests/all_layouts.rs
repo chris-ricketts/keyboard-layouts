@@ -22,7 +22,6 @@ const RDESC: [u8; 63] = [
 const ALPHA_NUMERIC: &'static str =
     "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 const SYMBOLS: &'static str = "\"#!$%&'()*+,-.\\/:;<=>?@[]^_`{|}~\"";
-//const EXPECTED_SYMBOLS: &'static str = "#!$%&'()*+,-./:;<=>?@\\[]^_`{|}~\"";
 
 lazy_static! {
     static ref X_LAYOUT_MAP: HashMap<&'static str, (&'static str, Option<&'static str>)> = hashmap! {
@@ -32,8 +31,10 @@ lazy_static! {
         "LAYOUT_FRENCH" => ("fr", Some("latin9")),
         "LAYOUT_US_ENGLISH" => ("us", None),
         "LAYOUT_FINNISH" => ("fi", None),
+        // Fails because Linux is different from Windows for '#' so not changing
         "LAYOUT_SPANISH_LATIN_AMERICA" => ("latam",  None),
         "LAYOUT_FRENCH_BELGIAN" => ("be", None),
+        // Fails because Linux is different from Windows for '`' so not changing
         "LAYOUT_IRISH" => ("ie", None),
         "LAYOUT_SWEDISH" => ("se", None),
         "LAYOUT_GERMAN_SWISS" => ("ch", None),
@@ -42,12 +43,15 @@ lazy_static! {
         "LAYOUT_PORTUGUESE" => ("pt", None),
         "LAYOUT_ICELANDIC" => ("is", None),
         "LAYOUT_TURKISH" => ("tr", None),
+        // For some reason the ' deadkey is used but not printed when testing
         "LAYOUT_US_INTERNATIONAL" => ("us", Some("intl")),
         // use canadian multix to be inline with Windows Canadian Multilingual standard
         "LAYOUT_CANADIAN_MULTILINGUAL" => ("ca", Some("multix")),
         "LAYOUT_FRENCH_SWISS" => ("ch", Some("fr")),
         "LAYOUT_DANISH" => ("dk", None),
+        // Fails on keyboard layout not containing '`' and '~'
         "LAYOUT_ITALIAN" => ("it", None),
+        // Fails miserably
         "LAYOUT_GERMAN_MAC" => ("de", Some("mac")),
         "LAYOUT_NORWEGIAN" => ("no", None),
         "LAYOUT_UNITED_KINGDOM" => ("gb", None),
@@ -94,16 +98,15 @@ fn write_string_for_layout(string: &str, layout: &str) {
     let mut input = String::new();
 
     let packets =
-        keyboard_scancodes::string_to_hid_packets(layout, &format!("{}\n", string)).unwrap();
+        keyboard_layouts::string_to_hid_packets(layout, &format!("{}\n", string)).unwrap();
 
     uhid_device.send_input(&[0u8; 8]).unwrap();
 
     thread::sleep(Duration::from_millis(500));
     // helps when debugging testing to wait on enter being pressed in console
-    std::io::stdin().read_line(&mut input).unwrap();
+    //std::io::stdin().read_line(&mut input).unwrap();
 
     for packet in packets.chunks(8) {
-        eprintln!("Mod: {} Key: {}", packet[0], packet[2]);
         uhid_device.send_input(&packet).unwrap();
         thread::sleep(Duration::from_millis(50));
     }
@@ -113,6 +116,7 @@ fn write_string_for_layout(string: &str, layout: &str) {
     std::io::stdin().read_line(&mut input).unwrap();
 
     assert_eq!(
+        // removes internal spaces as linux does not honour the same deadkeys as mac/windows
         input.trim().replace(" ", ""),
         string,
         "Unexpected output for layout: {}",

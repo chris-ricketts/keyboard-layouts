@@ -97,7 +97,6 @@ fn main() {
             );
 
             let layout_key = def.to_string();
-            let layout_name = layout_key.replace("LAYOUT_", "").replace("_", " ");
             let quote_alt_mask = quote_option(alt_mask);
             let quote_ctrl_mask = quote_option(ctrl_mask);
             let quote_non_us = quote_option(non_us);
@@ -119,7 +118,6 @@ fn main() {
                 m.insert(
                     #layout_key,
                     Layout::new(
-                        #layout_name,
                         #shift_mask,
                         #quote_alt_mask,
                         #quote_ctrl_mask,

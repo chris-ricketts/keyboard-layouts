@@ -1,12 +1,12 @@
 [package]
-name = "keyboard-scancodes"
+name = "keyboard-layouts"
 version = "0.1.0"
 authors = ["chris ricketts <chris.ricketts@steribar.com>"]
 edition = "2018"
 
 [[bin]]
-name = "hidsim"
-path = "src/hidsim.rs"
+name = "kbsim"
+path = "src/kbsim.rs"
 
 [dependencies]
 gen_layouts = { path = "gen_layouts" }

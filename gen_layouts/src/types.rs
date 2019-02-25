@@ -14,7 +14,6 @@ pub struct DeadKeys {
 }
 
 pub struct Layout {
-    pub layout_name: &'static str,
     pub shift_mask: u16,
     pub alt_mask: Option<u16>,
     pub ctrl_mask: Option<u16>,
@@ -59,7 +58,6 @@ impl DeadKeys {
 
 impl Layout {
     pub fn new(
-        layout_name: &'static str,
         shift_mask: u16,
         alt_mask: Option<u16>,
         ctrl_mask: Option<u16>,
@@ -71,7 +69,6 @@ impl Layout {
     ) -> Layout {
         let keycodes = keycodes.into_boxed_slice();
         Layout {
-            layout_name,
             shift_mask,
             alt_mask,
             ctrl_mask,

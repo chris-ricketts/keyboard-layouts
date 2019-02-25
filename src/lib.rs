@@ -8,6 +8,7 @@ const UNICODE_TAB: u16 = 9; // \t
 const UNICODE_FIRST_ASCII: u16 = 0x20; // SPACE
 const UNICODE_LAST_ASCII: u16 = 0x7F; // BACKSPACE
 const KEY_MASK: u16 = 0x3F; // Remove SHIFT/ALT/CTRL from keycode
+/// The number of bytes in a keyboard HID packet
 pub const HID_PACKET_LEN: usize = 8;
 const HID_PACKET_SUFFIX: [u8; 5] = [0u8; 5];
 const RELEASE_KEYS_HID_PACKET: [u8; 8] = [0u8; 8];
@@ -27,13 +28,13 @@ impl fmt::Display for Error {
     }
 }
 
-pub fn available_layouts() -> Vec<(&'static str, &'static str)> {
-    LAYOUT_MAP
-        .iter()
-        .map(|(k, v)| (*k, v.layout_name))
-        .collect()
+/// Get a list of the supported keyboard layouts
+pub fn available_layouts() -> Vec<&'static str> {
+    LAYOUT_MAP.keys().map(|k| *k).collect()
 }
 
+/// Get a list of the key and modifier pairs required to type the given string on a keyboard with
+/// the specified layout.
 pub fn string_to_keys_and_modifiers(
     layout_key: &str,
     string: &str,
@@ -41,25 +42,34 @@ pub fn string_to_keys_and_modifiers(
     let layout = LAYOUT_MAP
         .get(layout_key)
         .ok_or_else(|| Error::InvalidLayoutKey(layout_key.to_string()))?;
+
     let mut keys_and_modifiers: Vec<(u8, u8)> = Vec::with_capacity(string.len());
+
     for c in string.chars() {
         let keycode =
             keycode_for_unicode(layout, c as u16).ok_or_else(|| Error::InvalidCharacter(c))?;
+
         if let Some(dead_keycode) = deadkey_for_keycode(layout, keycode) {
-            let dead_key = dbg!(key_for_keycode(layout, dead_keycode));
-            let dead_modifier = dbg!(modifier_for_keycode(layout, dead_keycode));
+            let dead_key = key_for_keycode(layout, dead_keycode);
+            let dead_modifier = modifier_for_keycode(layout, dead_keycode);
             keys_and_modifiers.push((dead_key, dead_modifier));
         }
+
         let key = key_for_keycode(layout, keycode);
         let modifier = modifier_for_keycode(layout, keycode);
         keys_and_modifiers.push((key, modifier));
     }
+
     Ok(keys_and_modifiers)
 }
 
+/// Create the sequence of HID packets required to type the given string. Impersonating a keyboard
+/// with the specified layout. These packets can be written directly to a HID device file.
 pub fn string_to_hid_packets(layout_key: &str, string: &str) -> Result<Bytes, Error> {
     let keys_and_modifiers = string_to_keys_and_modifiers(layout_key, string)?;
+
     let mut packet_bytes = BytesMut::with_capacity(HID_PACKET_LEN * keys_and_modifiers.len() * 2);
+
     for (key, modifier) in keys_and_modifiers.iter() {
         packet_bytes.put_u8(*modifier);
         packet_bytes.put_u8(0u8);
@@ -67,6 +77,7 @@ pub fn string_to_hid_packets(layout_key: &str, string: &str) -> Result<Bytes, Er
         packet_bytes.put_slice(&HID_PACKET_SUFFIX);
         packet_bytes.put_slice(&RELEASE_KEYS_HID_PACKET);
     }
+
     Ok(packet_bytes.freeze())
 }
 
@@ -125,20 +136,17 @@ fn deadkey_for_keycode(layout: &Layout, keycode: u16) -> Option<u16> {
 fn modifier_for_keycode(layout: &Layout, keycode: u16) -> u8 {
     let mut modifier = 0u16;
 
-    dbg!(keycode & layout.shift_mask);
     if keycode & layout.shift_mask > 0 {
         modifier |= SHIFT_MODIFIER;
     }
 
     if let Some(alt_mask) = layout.alt_mask {
-        dbg!(keycode & alt_mask);
         if keycode & alt_mask > 0 {
             modifier |= RIGHT_ALT_MODIFIER;
         }
     }
 
     if let Some(ctrl_mask) = layout.ctrl_mask {
-        dbg!(keycode & ctrl_mask);
         if keycode & ctrl_mask > 0 {
             modifier |= RIGHT_CTRL_MODIFIER;
         }
