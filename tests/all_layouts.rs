@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
-use linux_uhid_tokio::{Bus, CreateParams, UHIDDevice};
 use maplit::hashmap;
 use pretty_assertions::assert_eq;
+use tokio_linux_uhid::{Bus, CreateParams, UHIDDevice};
 
 use std::collections::HashMap;
 use std::io::{Read, Write};
