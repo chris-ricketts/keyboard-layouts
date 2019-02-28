@@ -25,7 +25,7 @@ This depends on your operating system and underlying hardware. So far this has o
 
 On Linux you can either:
 - Create a HID gadget device file on a Linux SBC with an OTG USB port. E.g. Raspberry Pi, Beaglebone. [This guide describes how](https://www.isticktoit.net/?p=1383)
-- Check out the tests to see how to use the `linux-uhid-tokio` crate to create a virtual HID device on a Linux desktop
+- Check out the tests to see how to use the [tokio-linux-uhid](https://crates.io/crates/tokio-linux-uhid) crate to create a virtual HID device on a Linux desktop
 
 I'm afraid for Windows and Mac I have no idea.
 
