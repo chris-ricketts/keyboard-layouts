@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 use bytes::{BufMut, Bytes, BytesMut};
 use gen_layouts_sys::*;
 
@@ -5,8 +8,11 @@ use std::fmt;
 
 const UNICODE_ENTER: u16 = 10; // \n
 const UNICODE_TAB: u16 = 9; // \t
+// https://stackoverflow.com/questions/23320417/what-is-this-character-separator
+const CONTROL_CHARACTER_OFFSET: u16 = 0x40;
 const UNICODE_FIRST_ASCII: u16 = 0x20; // SPACE
 const UNICODE_LAST_ASCII: u16 = 0x7F; // BACKSPACE
+const UNICODE_DIGIT_OFFSET: usize = 48; // 0
 const KEY_MASK: u16 = 0x3F; // Remove SHIFT/ALT/CTRL from keycode
 /// The number of bytes in a keyboard HID packet
 pub const HID_PACKET_LEN: usize = 8;
@@ -19,11 +25,31 @@ pub enum Error {
     InvalidCharacter(char),
 }
 
+#[derive(Debug)]
+pub enum Release {
+    All,
+    Keys,
+    None,
+}
+
+#[derive(Debug)]
+pub struct KeyMod {
+    pub key: u8,
+    pub modifier: u8,
+    pub release: Release,
+}
+
+enum Keycode {
+    ModifierKeySequence(u16, Vec<u16>),
+    RegularKey(u16),
+    InvalidCharacter,
+}
+
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::InvalidLayoutKey(key) => write!(f, "No layout defined for {}", key),
-            Error::InvalidCharacter(c) => write!(f, "Invalid character: '{}'", c),
+            Error::InvalidCharacter(c) => write!(f, "Invalid character: '{}' or [{:?}]", c, c),
         }
     }
 }
@@ -35,29 +61,50 @@ pub fn available_layouts() -> Vec<&'static str> {
 
 /// Get a list of the key and modifier pairs required to type the given string on a keyboard with
 /// the specified layout.
-pub fn string_to_keys_and_modifiers(
-    layout_key: &str,
-    string: &str,
-) -> Result<Vec<(u8, u8)>, Error> {
+pub fn string_to_keys_and_modifiers(layout_key: &str, string: &str) -> Result<Vec<KeyMod>, Error> {
     let layout = LAYOUT_MAP
         .get(layout_key)
         .ok_or_else(|| Error::InvalidLayoutKey(layout_key.to_string()))?;
 
-    let mut keys_and_modifiers: Vec<(u8, u8)> = Vec::with_capacity(string.len());
+    let mut keys_and_modifiers: Vec<KeyMod> = Vec::with_capacity(string.len());
 
     for c in string.chars() {
-        let keycode =
-            keycode_for_unicode(layout, c as u16).ok_or_else(|| Error::InvalidCharacter(c))?;
-
-        if let Some(dead_keycode) = deadkey_for_keycode(layout, keycode) {
-            let dead_key = key_for_keycode(layout, dead_keycode);
-            let dead_modifier = modifier_for_keycode(layout, dead_keycode);
-            keys_and_modifiers.push((dead_key, dead_modifier));
+        match keycode_for_unicode(layout, c as u16) {
+            Keycode::ModifierKeySequence(modifier, sequence) => {
+                for keycode in sequence {
+                    keys_and_modifiers.push(KeyMod {
+                        key: keycode as u8,
+                        modifier: modifier as u8,
+                        release: Release::Keys,
+                    });
+                }
+                // Manually add release after sequence is finished
+                keys_and_modifiers.push(KeyMod {
+                    key: 0,
+                    modifier: 0,
+                    release: Release::None,
+                });
+            }
+            Keycode::RegularKey(keycode) => {
+                if let Some(dead_keycode) = deadkey_for_keycode(layout, keycode) {
+                    let key = key_for_keycode(layout, dead_keycode);
+                    let modifier = modifier_for_keycode(layout, dead_keycode);
+                    keys_and_modifiers.push(KeyMod {
+                        key,
+                        modifier,
+                        release: Release::All,
+                    });
+                }
+                let key = key_for_keycode(layout, keycode);
+                let modifier = modifier_for_keycode(layout, keycode);
+                keys_and_modifiers.push(KeyMod {
+                    key,
+                    modifier,
+                    release: Release::All,
+                });
+            }
+            _ => return Err(Error::InvalidCharacter(c)),
         }
-
-        let key = key_for_keycode(layout, keycode);
-        let modifier = modifier_for_keycode(layout, keycode);
-        keys_and_modifiers.push((key, modifier));
     }
 
     Ok(keys_and_modifiers)
@@ -68,29 +115,48 @@ pub fn string_to_keys_and_modifiers(
 pub fn string_to_hid_packets(layout_key: &str, string: &str) -> Result<Bytes, Error> {
     let keys_and_modifiers = string_to_keys_and_modifiers(layout_key, string)?;
 
+    debug!("Keys and Modifiers for {}:{:?}", string, keys_and_modifiers);
     let mut packet_bytes = BytesMut::with_capacity(HID_PACKET_LEN * keys_and_modifiers.len() * 2);
 
-    for (key, modifier) in keys_and_modifiers.iter() {
+    for KeyMod {
+        key,
+        modifier,
+        release,
+    } in keys_and_modifiers.iter()
+    {
         packet_bytes.put_u8(*modifier);
         packet_bytes.put_u8(0u8);
         packet_bytes.put_u8(*key);
         packet_bytes.put_slice(&HID_PACKET_SUFFIX);
-        packet_bytes.put_slice(&RELEASE_KEYS_HID_PACKET);
+        match *release {
+            Release::All => packet_bytes.put_slice(&RELEASE_KEYS_HID_PACKET),
+            Release::Keys => {
+                packet_bytes.put_u8(*modifier);
+                packet_bytes.put_u8(0u8);
+                packet_bytes.put_u8(0u8);
+                packet_bytes.put_slice(&HID_PACKET_SUFFIX);
+            }
+            Release::None => {}
+        }
     }
 
     Ok(packet_bytes.freeze())
 }
 
-// https://github.com/PaulStoffregen/cores/blob/master/usb_hid/usb_api.cpp#L72
-fn keycode_for_unicode(layout: &Layout, unicode: u16) -> Option<u16> {
+fn keycode_for_unicode(layout: &Layout, unicode: u16) -> Keycode {
     match unicode {
-        _u if _u == UNICODE_ENTER => Some(ENTER_KEYCODE & layout.keycode_mask),
-        _u if _u == UNICODE_TAB => Some(TAB_KEYCODE & layout.keycode_mask),
+        u if u == UNICODE_ENTER => Keycode::RegularKey(ENTER_KEYCODE & layout.keycode_mask),
+        u if u == UNICODE_TAB => Keycode::RegularKey(TAB_KEYCODE & layout.keycode_mask),
+        u if u < UNICODE_FIRST_ASCII =>  {
+            let idx = ((u + CONTROL_CHARACTER_OFFSET) - UNICODE_FIRST_ASCII) as usize;
+            let keycodes = vec![layout.keycodes[idx]];
+            Keycode::ModifierKeySequence(RIGHT_CTRL_MODIFIER, keycodes)
+        }
         u if u >= UNICODE_FIRST_ASCII && u <= UNICODE_LAST_ASCII => {
             let idx = (u - UNICODE_FIRST_ASCII) as usize;
-            Some(layout.keycodes[idx])
+            Keycode::RegularKey(layout.keycodes[idx])
         }
-        _ => None,
+        _ => Keycode::InvalidCharacter,
     }
 }
 

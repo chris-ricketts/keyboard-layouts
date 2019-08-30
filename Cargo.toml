@@ -1,6 +1,6 @@
 [package]
 name = "keyboard-layouts"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["chris ricketts <chris.ricketts@steribar.com>"]
 edition = "2018"
 description = "Keyboard layout keymaps with an API to generate HID packets"
@@ -15,9 +15,10 @@ name = "kbsim"
 path = "src/kbsim.rs"
 
 [dependencies]
-gen_layouts_sys = "0.1.0"
+gen_layouts_sys = { path = "gen_layouts_sys" }
 bytes = "0.4"
 structopt = "0.2"
+log = "0.4.5"
 
 [dev-dependencies]
 tokio-linux-uhid = "0.3.0"

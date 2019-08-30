@@ -10,13 +10,17 @@ use std::path::PathBuf;
 
 const KEY_LAYOUTS_HEADER: &'static str = include_str!("keylayouts.h");
 const N_ASCII_CHARS_SUPPORTED: usize = 96;
+const N_NUMPAD_KEYS: usize = 10;
 
 struct GlobalKeys {
     pub enter: u16,
     pub tab: u16,
     pub shift_modifier: u16,
     pub right_alt_modifier: u16,
+    pub left_alt_modifier: u16,
     pub right_ctrl_modifier: u16,
+    pub numpad_keys: [u16; N_NUMPAD_KEYS],
+    pub numlock: u16,
 }
 
 struct LayoutMasks {
@@ -49,7 +53,10 @@ fn main() {
         tab,
         shift_modifier,
         right_alt_modifier,
+        left_alt_modifier,
         right_ctrl_modifier,
+        numpad_keys,
+        numlock,
     } = get_global_keys();
 
     // Layout and DeadKeys come from src/types.rs
@@ -145,6 +152,13 @@ fn main() {
         })
         .collect::<Vec<TokenStream>>();
 
+    let quote_numpad_keys = (0..N_NUMPAD_KEYS)
+        .map(|idx| {
+            let keycode = numpad_keys[idx];
+            quote! { #keycode , }
+        })
+        .collect::<Vec<TokenStream>>();
+
     // Layout comes from src/types.rs
     let full_output = quote! {
         use std::collections::HashMap;
@@ -154,7 +168,12 @@ fn main() {
         pub const TAB_KEYCODE: u16 = #tab;
         pub const SHIFT_MODIFIER: u16 = #shift_modifier;
         pub const RIGHT_ALT_MODIFIER: u16 = #right_alt_modifier;
+        pub const LEFT_ALT_MODIFIER: u16 = #left_alt_modifier;
         pub const RIGHT_CTRL_MODIFIER: u16 = #right_ctrl_modifier;
+        pub const NUMLOCK: u16 = #numlock;
+        pub const NUMPAD_KEYS: [u16; #N_NUMPAD_KEYS] = [
+            #(#quote_numpad_keys)*
+        ];
 
         lazy_static! {
             pub static ref LAYOUT_MAP: HashMap<&'static str, Layout> = {
@@ -249,8 +268,34 @@ fn get_global_keys() -> GlobalKeys {
             .expect("Failed to find global key: MODIFIERKEY_SHIFT"),
         right_alt_modifier: find_key_definition(&definitions, "MODIFIERKEY_RIGHT_ALT")
             .expect("Failed to find global key: MODIFIERKEY_RIGHT_ALT"),
+        left_alt_modifier: find_key_definition(&definitions, "MODIFIERKEY_LEFT_ALT")
+            .expect("Failed to find global key: MODIFIERKEY_LEFT_ALT"),
         right_ctrl_modifier: find_key_definition(&definitions, "MODIFIERKEY_RIGHT_CTRL")
             .expect("Failed to find global key: MODIFIERKEY_RIGHT_CTRL"),
+        numlock: find_key_definition(&definitions, "KEY_NUM_LOCK")
+            .expect("Failed to find global key: KEY_NUM_LOCK"),
+        numpad_keys: [
+            find_key_definition(&definitions, "KEYPAD_0")
+                .expect("Failed to find global key: KEYPAD_0"),
+            find_key_definition(&definitions, "KEYPAD_1")
+                .expect("Failed to find global key: KEYPAD_1"),
+            find_key_definition(&definitions, "KEYPAD_2")
+                .expect("Failed to find global key: KEYPAD_2"),
+            find_key_definition(&definitions, "KEYPAD_3")
+                .expect("Failed to find global key: KEYPAD_3"),
+            find_key_definition(&definitions, "KEYPAD_4")
+                .expect("Failed to find global key: KEYPAD_4"),
+            find_key_definition(&definitions, "KEYPAD_5")
+                .expect("Failed to find global key: KEYPAD_5"),
+            find_key_definition(&definitions, "KEYPAD_6")
+                .expect("Failed to find global key: KEYPAD_6"),
+            find_key_definition(&definitions, "KEYPAD_7")
+                .expect("Failed to find global key: KEYPAD_7"),
+            find_key_definition(&definitions, "KEYPAD_8")
+                .expect("Failed to find global key: KEYPAD_8"),
+            find_key_definition(&definitions, "KEYPAD_9")
+                .expect("Failed to find global key: KEYPAD_9"),
+        ],
     }
 }
 
