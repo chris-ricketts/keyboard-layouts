@@ -1,6 +1,6 @@
 [package]
 name = "gen_layouts_sys"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["chris ricketts <chris.ricketts@steribar.com>"]
 edition = "2018"
 description = "Generated keyboard layouts"
@@ -11,7 +11,7 @@ repository = "https://github.com/Chris-Ricketts/keyboard-layouts"
 lazy_static = "1.2.0"
 
 [build-dependencies]
-bindgen = "0.46"
+bindgen = "0.52"
 quote = "0.6"
 syn = { version = "0.15", features = ["full", "extra-traits"] }
 regex = "1"
