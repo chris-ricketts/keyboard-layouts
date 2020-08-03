@@ -1,17 +1,24 @@
 #![recursion_limit = "128"]
+#[cfg(feature = "generate")]
 use proc_macro2::TokenStream;
+#[cfg(feature = "generate")]
 use quote::{quote, ToTokens};
+#[cfg(feature = "generate")]
 use regex::RegexBuilder;
+#[cfg(feature = "generate")]
 use syn::{Expr, Item, Lit};
 
-use std::env;
-use std::fs;
-use std::path::PathBuf;
+#[cfg(feature = "generate")]
+use std::{env, fs, path::PathBuf};
 
+#[cfg(feature = "generate")]
 const KEY_LAYOUTS_HEADER: &'static str = include_str!("keylayouts.h");
+#[cfg(feature = "generate")]
 const N_ASCII_CHARS_SUPPORTED: usize = 96;
+#[cfg(feature = "generate")]
 const N_NUMPAD_KEYS: usize = 10;
 
+#[cfg(feature = "generate")]
 struct GlobalKeys {
     pub enter: u16,
     pub tab: u16,
@@ -23,6 +30,7 @@ struct GlobalKeys {
     pub numlock: u16,
 }
 
+#[cfg(feature = "generate")]
 struct LayoutMasks {
     pub shift_mask: u16,
     pub alt_mask: Option<u16>,
@@ -32,6 +40,7 @@ struct LayoutMasks {
     pub keycode_mask: u16,
 }
 
+#[cfg(feature = "generate")]
 struct LayoutDeadKeys {
     pub acute_accent_bits: Option<u16>,
     pub deadkey_accute_accent: Option<u16>,
@@ -48,6 +57,12 @@ struct LayoutDeadKeys {
 }
 
 fn main() {
+    #[cfg(feature = "generate")]
+    generate()
+}
+
+#[cfg(feature = "generate")]
+fn generate() {
     let GlobalKeys {
         enter,
         tab,
@@ -191,6 +206,7 @@ fn main() {
 }
 
 // https://github.com/dtolnay/quote/issues/20
+#[cfg(feature = "generate")]
 fn quote_option<T: ToTokens>(o: Option<T>) -> TokenStream {
     match o {
         Some(ref t) => quote! { Some(#t) },
@@ -198,6 +214,7 @@ fn quote_option<T: ToTokens>(o: Option<T>) -> TokenStream {
     }
 }
 
+#[cfg(feature = "generate")]
 fn generate_layout(layout: &str) -> syn::File {
     let header_name = format!("{}.h", layout);
     let defined_layout = format!("#define {}\n{}", layout, KEY_LAYOUTS_HEADER);
@@ -211,6 +228,7 @@ fn generate_layout(layout: &str) -> syn::File {
     syn::parse_str::<syn::File>(&bindings).expect("Failed to parse bindings")
 }
 
+#[cfg(feature = "generate")]
 fn extract_ascii_keycodes(definitions: &syn::File) -> Vec<u16> {
     definitions
         .items
@@ -219,6 +237,7 @@ fn extract_ascii_keycodes(definitions: &syn::File) -> Vec<u16> {
         .collect()
 }
 
+#[cfg(feature = "generate")]
 fn extract_layout_masks(definitions: &syn::File, layout: &str) -> LayoutMasks {
     LayoutMasks {
         shift_mask: find_key_definition(definitions, "SHIFT_MASK")
@@ -232,6 +251,7 @@ fn extract_layout_masks(definitions: &syn::File, layout: &str) -> LayoutMasks {
     }
 }
 
+#[cfg(feature = "generate")]
 fn extract_layout_deadkeys(definitions: &syn::File) -> LayoutDeadKeys {
     LayoutDeadKeys {
         acute_accent_bits: find_key_definition(definitions, "ACUTE_ACCENT_BITS"),
@@ -249,6 +269,7 @@ fn extract_layout_deadkeys(definitions: &syn::File) -> LayoutDeadKeys {
     }
 }
 
+#[cfg(feature = "generate")]
 fn get_global_keys() -> GlobalKeys {
     let bindings = bindgen::Builder::default()
         .generate_comments(false)
@@ -299,6 +320,7 @@ fn get_global_keys() -> GlobalKeys {
     }
 }
 
+#[cfg(feature = "generate")]
 fn find_layout_definitions() -> Vec<&'static str> {
     let layout_def_regex = RegexBuilder::new(r"//\#define\s+?(LAYOUT_.*)")
         .multi_line(true)
@@ -312,6 +334,7 @@ fn find_layout_definitions() -> Vec<&'static str> {
         .collect()
 }
 
+#[cfg(feature = "generate")]
 fn find_key_definition(definitions: &syn::File, label: &str) -> Option<u16> {
     definitions
         .items
@@ -319,6 +342,7 @@ fn find_key_definition(definitions: &syn::File, label: &str) -> Option<u16> {
         .find_map(|i| find_const_u16_with_name_containing(i, label))
 }
 
+#[cfg(feature = "generate")]
 fn find_const_u16_with_name_containing(item: &Item, name: &str) -> Option<u16> {
     match item {
         Item::Const(c) => {
