@@ -26,10 +26,11 @@ pub enum Error {
 }
 
 #[derive(Debug)]
+#[repr(u8)]
 pub enum Release {
-    All,
-    Keys,
-    None,
+    All = 0,
+    Keys = 1,
+    None = 2,
 }
 
 #[derive(Debug)]
@@ -147,7 +148,7 @@ fn keycode_for_unicode(layout: &Layout, unicode: u16) -> Keycode {
     match unicode {
         u if u == UNICODE_ENTER => Keycode::RegularKey(ENTER_KEYCODE & layout.keycode_mask),
         u if u == UNICODE_TAB => Keycode::RegularKey(TAB_KEYCODE & layout.keycode_mask),
-        u if u < UNICODE_FIRST_ASCII =>  {
+        u if u < UNICODE_FIRST_ASCII => {
             let idx = ((u + CONTROL_CHARACTER_OFFSET) - UNICODE_FIRST_ASCII) as usize;
             let keycodes = vec![layout.keycodes[idx]];
             Keycode::ModifierKeySequence(RIGHT_CTRL_MODIFIER, keycodes)
