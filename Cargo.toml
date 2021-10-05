@@ -10,9 +10,13 @@ exclude = [".gitignore"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Chris-Ricketts/keyboard-layouts"
 
+[lib]
+name = "keyboard_layouts"
+path = "src/lib.rs"
+
 [[bin]]
 name = "kbsim"
-path = "src/kbsim.rs"
+path = "src/bin/kbsim.rs"
 
 [dependencies]
 gen_layouts_sys = { path = "gen_layouts_sys", version = "0.3.0" }
